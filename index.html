@@ -4,19 +4,23 @@
   <title>Stats Joueur</title>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 600px; margin: 30px auto; }
+    input { padding: 8px; font-size: 16px; width: 70%; }
+    button { padding: 8px 16px; font-size: 16px; }
+    pre { background: #f4f4f4; padding: 10px; white-space: pre-wrap; }
+  </style>
 </head>
 <body>
   <h1>Voir les statistiques d’un joueur</h1>
   <input type="text" id="pseudo" placeholder="Entrez le pseudo" />
   <button onclick="getStats()">Voir stats</button>
 
-  <div id="stats"></div>
+  <div id="stats" style="margin-top: 20px;"></div>
 
   <script>
+    
     const firebaseConfig = {
-     
-
-
       apiKey: "AIzaSyCZBqPeA51GZcNuIU3ujqnPJec98Q9SWcI",
       authDomain: "vaultofpain-93144.firebaseapp.com",
       databaseURL: "https://vaultofpain-93144-default-rtdb.europe-west1.firebasedatabase.app",
@@ -29,6 +33,26 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
+    function formatCapacites(capacites) {
+      let result = '';
+      for (const [nom, data] of Object.entries(capacites)) {
+        const nomLisible = nom.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+        const actif = data.actif ? 'Oui' : 'Non';
+        result += `${nomLisible} : Niveau ${data.niveau}, Actif : ${actif}\n`;
+      }
+      return result;
+    }
+
+    function formatStatChoisi(statString) {
+      const labels = ['PV', 'Dégât', 'Vitesse Attaque', 'Défense', 'Mana'];
+      const valeurs = statString.split(',').map(s => s.trim());
+      let result = '';
+      for (let i = 0; i < labels.length; i++) {
+        result += `${labels[i]} : ${valeurs[i]}  `;
+      }
+      return result.trim();
+    }
+
     function getStats() {
       const pseudo = document.getElementById('pseudo').value.trim();
       if (!pseudo) {
@@ -39,7 +63,6 @@
       const statsDiv = document.getElementById('stats');
       statsDiv.innerHTML = 'Chargement...';
 
-      // Chemin dans Realtime Database
       const ref = db.ref('utilisateurs/' + pseudo + '/profil');
       ref.get()
         .then(snapshot => {
@@ -48,13 +71,15 @@
 
             statsDiv.innerHTML = `
               <h2>Stats de ${pseudo}</h2>
-              <p>Capacités : ${JSON.stringify(profil.capacites)}</p>
+              <pre>Capacités :
+${formatCapacites(profil.capacites)}</pre>
               
-              
+              <p>Map chargée : ${profil.map_charge}</p>
               <p>Niveau : ${profil.niv}</p>
-              <p>Points de compétence : ${profil.skill_points}</p>
-              <p>Stat choisi : ${profil.stat_choisi}</p>
               <p>XP : ${profil.xp}</p>
+              
+              <p>Stat choisi : ${formatStatChoisi(profil.stat_choisi)}</p>
+              
             `;
           } else {
             statsDiv.innerHTML = 'Aucun profil trouvé pour ce joueur.';
