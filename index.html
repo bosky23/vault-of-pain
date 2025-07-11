@@ -43,12 +43,26 @@
       return result;
     }
 
-    function formatStatChoisi(statString) {
+    function formatStatChoisi(stat) {
       const labels = ['PV', 'Dégât', 'Vitesse Attaque', 'Défense', 'Mana'];
-      const valeurs = statString.split(',').map(s => s.trim());
+    
+      let valeurs;
+    
+      if (typeof stat === 'string') {
+        valeurs = stat.split(',').map(s => s.trim());
+      } else if (Array.isArray(stat)) {
+        valeurs = stat.map(String); // Convertir chaque valeur en string
+      } else if (typeof stat === 'object' && stat !== null) {
+        // Si c’est un objet, prendre les valeurs dans l’ordre
+        valeurs = Object.values(stat).map(String);
+      } else {
+        // Cas inattendu : juste retourner vide
+        return '';
+      }
+    
       let result = '';
       for (let i = 0; i < labels.length; i++) {
-        result += `${labels[i]} : ${valeurs[i]}  `;
+        result += `${labels[i]} : ${valeurs[i] || '0'}  `;
       }
       return result.trim();
     }
