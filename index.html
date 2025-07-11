@@ -5,33 +5,81 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; max-width: 600px; margin: 30px auto; }
+    body { font-family: Arial, sans-serif; max-width: 700px; margin: 30px auto; }
     input { padding: 8px; font-size: 16px; width: 70%; }
     button { padding: 8px 16px; font-size: 16px; }
     pre { background: #f4f4f4; padding: 10px; white-space: pre-wrap; }
+    #suggestions { margin-top: 10px; }
+    .pseudo { cursor: pointer; padding: 4px; }
+    .pseudo:hover { background-color: #eee; }
+    .show-more { cursor: pointer; color: blue; }
   </style>
 </head>
 <body>
   <h1>Voir les statistiques d’un joueur</h1>
-  <input type="text" id="pseudo" placeholder="Entrez le pseudo" />
+  <input type="text" id="pseudo" placeholder="Entrez le pseudo" oninput="filtrerPseudos()" />
   <button onclick="getStats()">Voir stats</button>
 
+  <div id="suggestions"></div>
   <div id="stats" style="margin-top: 20px;"></div>
 
   <script>
-    
     const firebaseConfig = {
       apiKey: "AIzaSyCZBqPeA51GZcNuIU3ujqnPJec98Q9SWcI",
       authDomain: "vaultofpain-93144.firebaseapp.com",
       databaseURL: "https://vaultofpain-93144-default-rtdb.europe-west1.firebasedatabase.app",
       projectId: "vaultofpain-93144",
-      storageBucket: "vaultofpain-93144.firebasestorage.app",
+      storageBucket: "vaultofpain-93144.appspot.com",
       messagingSenderId: "175940463844",
       appId: "1:175940463844:web:e100d2f9849e2e1e9190f1"
     };
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
+
+    let tousLesPseudos = [];
+    let nbPseudosAffiches = 20;
+
+    // Récupère la liste des pseudos au chargement
+    firebase.database().ref("utilisateurs").once("value").then(snapshot => {
+      tousLesPseudos = Object.keys(snapshot.val() || {});
+      afficherSuggestions('');
+    });
+
+    function filtrerPseudos() {
+      const recherche = document.getElementById('pseudo').value.toLowerCase();
+      afficherSuggestions(recherche);
+    }
+
+    function afficherSuggestions(recherche = '') {
+      const suggestionDiv = document.getElementById('suggestions');
+      suggestionDiv.innerHTML = '';
+
+      let filtres = tousLesPseudos.filter(p => p.toLowerCase().startsWith(recherche));
+      const aAfficher = filtres.slice(0, nbPseudosAffiches);
+
+      aAfficher.forEach(pseudo => {
+        const div = document.createElement('div');
+        div.className = 'pseudo';
+        div.textContent = pseudo;
+        div.onclick = () => {
+          document.getElementById('pseudo').value = pseudo;
+          getStats();
+        };
+        suggestionDiv.appendChild(div);
+      });
+
+      if (filtres.length > nbPseudosAffiches) {
+        const more = document.createElement('div');
+        more.className = 'show-more';
+        more.textContent = '▼ Voir plus';
+        more.onclick = () => {
+          nbPseudosAffiches += 20;
+          afficherSuggestions(recherche);
+        };
+        suggestionDiv.appendChild(more);
+      }
+    }
 
     function formatCapacites(capacites) {
       let result = '';
@@ -45,21 +93,18 @@
 
     function formatStatChoisi(stat) {
       const labels = ['PV', 'Dégât', 'Vitesse Attaque', 'Défense', 'Mana'];
-    
       let valeurs;
-    
+
       if (typeof stat === 'string') {
         valeurs = stat.split(',').map(s => s.trim());
       } else if (Array.isArray(stat)) {
-        valeurs = stat.map(String); // Convertir chaque valeur en string
+        valeurs = stat.map(String);
       } else if (typeof stat === 'object' && stat !== null) {
-        // Si c’est un objet, prendre les valeurs dans l’ordre
         valeurs = Object.values(stat).map(String);
       } else {
-        // Cas inattendu : juste retourner vide
         return '';
       }
-    
+
       let result = '';
       for (let i = 0; i < labels.length; i++) {
         result += `${labels[i]} : ${valeurs[i] || '0'}  `;
@@ -87,13 +132,10 @@
               <h2>Stats de ${pseudo}</h2>
               <pre>Capacités :
 ${formatCapacites(profil.capacites)}</pre>
-              
               <p>Map chargée : ${profil.map_charge}</p>
               <p>Niveau : ${profil.niv}</p>
               <p>XP : ${profil.xp}</p>
-              
               <p>Stat choisi : ${formatStatChoisi(profil.stat_choisi)}</p>
-              
             `;
           } else {
             statsDiv.innerHTML = 'Aucun profil trouvé pour ce joueur.';
