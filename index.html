@@ -1,27 +1,71 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mon Jeu</title>
-  <link rel="stylesheet" href="style.css" />
+  <title>Stats Joueur</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 </head>
 <body>
-  <header>
-    <h1>Bienvenue sur Mon Jeu</h1>
-    <p>Un jeu développé avec Python et Pygame !</p>
-  </header>
+  <h1>Voir les statistiques d’un joueur</h1>
+  <input type="text" id="pseudo" placeholder="Entrez le pseudo" />
+  <button onclick="getStats()">Voir stats</button>
 
-  <section class="presentation">
-    <img src="vaultofpain.ico" alt="Capture d'écran du jeu" />
-    <p>
-      Mon Jeu est un jeu d'aventure en 2D où vous incarnez un héros courageux qui traverse des niveaux remplis de pièges et d'ennemis.
-    </p>
-    <a href="https://tonlienitch.io" class="btn">Télécharger le jeu</a>
-  </section>
+  <div id="stats"></div>
 
-  <footer>
-    <p>&copy; 2025 TonNomDev - Créé avec ❤️ en Python</p>
-  </footer>
+  <script>
+    // Ta config Firebase ici
+    const firebaseConfig = {
+      apiKey: "TON_API_KEY",
+      authDomain: "TON_PROJET.firebaseapp.com",
+      projectId: "TON_PROJET",
+      storageBucket: "TON_PROJET.appspot.com",
+      messagingSenderId: "TON_ID",
+      appId: "TON_APP_ID"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    function getStats() {
+      const pseudo = document.getElementById('pseudo').value.trim();
+      if (!pseudo) {
+        alert('Merci d’entrer un pseudo');
+        return;
+      }
+
+      const statsDiv = document.getElementById('stats');
+      statsDiv.innerHTML = 'Chargement...';
+
+      db.collection('utilisateurs').doc(pseudo).get()
+        .then(doc => {
+          if (doc.exists) {
+            const data = doc.data();
+            if (!data.profil) {
+              statsDiv.innerHTML = 'Profil introuvable pour ce joueur.';
+              return;
+            }
+            const profil = data.profil;
+
+            // On affiche uniquement les infos non sensibles
+            statsDiv.innerHTML = `
+              <h2>Stats de ${pseudo}</h2>
+              <p>Capacités : ${JSON.stringify(profil.capacites)}</p>
+              <p>Items : ${JSON.stringify(profil.item_player)}</p>
+              <p>Map chargée : ${profil.map_charge}</p>
+              <p>Niveau : ${profil.niv}</p>
+              <p>Points de compétence : ${profil.skill_points}</p>
+              <p>Stat choisi : ${profil.stat_choisi}</p>
+              <p>XP : ${profil.xp}</p>
+            `;
+          } else {
+            statsDiv.innerHTML = 'Aucun joueur trouvé avec ce pseudo.';
+          }
+        })
+        .catch(error => {
+          console.error("Erreur récupération stats :", error);
+          statsDiv.innerHTML = 'Erreur lors de la récupération des données.';
+        });
+    }
+  </script>
 </body>
 </html>
